@@ -2,9 +2,19 @@
   <head>
     <meta charset="utf-8"/>
     <script src="globeview.js"></script>
+    <style>
+      /* square canvas occupying most of the browser width */
+      canvas {
+        width: 90vw;
+        height: 90vw;
+        display: block;
+        margin: 0 auto;
+      }
+    </style>
   </head>
   <body style='margin:0px' onload="globeviewStart();">
-  Hello World.
-  <canvas id="globeview_canvas" width="400" height="300"></canvas>
+  WebGL2 version of Globeview
+  <br>
+  <canvas id="globeview_canvas"></canvas>
   </body>
 </html>

@@ -40,6 +40,21 @@ void main() {
 }
 `;
 
+function resize(canvas) {
+  // Lookup the size the browser is displaying the canvas.
+  var displayWidth  = ~~(0.9 * canvas.clientWidth);
+  var displayHeight = ~~(0.9 * canvas.clientHeight);
+
+  // Check if the canvas is not the same size.
+  if (canvas.width  != displayWidth ||
+      canvas.height != displayHeight) {
+
+    // Make the canvas the same size
+    canvas.width  = displayWidth;
+    canvas.height = displayHeight;
+  }
+}
+
 function initGL(canvas) {
   gl = canvas.getContext("webgl2");
   if (!gl) {
@@ -85,6 +100,7 @@ function initGL(canvas) {
 }
 
 function drawScene() {
+  resize(gl.canvas);
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.bindVertexArray(vao);
@@ -92,6 +108,7 @@ function drawScene() {
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, world_texture);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  requestAnimationFrame(drawScene);
 }
 
 function globeviewStart() {
@@ -107,6 +124,6 @@ function globeviewStart() {
       gl.UNSIGNED_BYTE,
       image);
     gl.generateMipmap(gl.TEXTURE_2D);
-    drawScene();
+    requestAnimationFrame(drawScene);
   }
 }
