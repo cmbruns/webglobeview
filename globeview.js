@@ -3,9 +3,9 @@
 var gl = null;
 var vao = null;
 var program = null;
+var world_texture = null;
 
 var vertexShader = `#version 300 es
-
 #line 10
 const vec4 SCREEN_QUAD[4] = vec4[4](
   vec4(-1, -1, 0.5, 1),
@@ -13,10 +13,10 @@ const vec4 SCREEN_QUAD[4] = vec4[4](
   vec4(-1,  1, 0.5, 1),
   vec4( 1,  1, 0.5, 1));
 const vec2 TEX_COORD[4] = vec2[4](
-  vec2(0, 0),
-  vec2(1, 0),
   vec2(0, 1),
-  vec2(1, 1));
+  vec2(1, 1),
+  vec2(0, 0),
+  vec2(1, 0));
 
 out vec2 tex_coord;
 
@@ -27,14 +27,16 @@ void main() {
 `;
 
 var fragmentShader = `#version 300 es
-
-#line 32
+#line 31
 precision mediump float;
+uniform sampler2D world_texture;
 in vec2 tex_coord;
 out vec4 outColor;
 
 void main() {
-  outColor = vec4(tex_coord, 1, 1);
+  outColor = 
+      // vec4(tex_coord, 1, 1);
+      texture(world_texture, tex_coord);
 }
 `;
 
@@ -44,6 +46,8 @@ function initGL(canvas) {
     alert("Could not initialise WebGL, sorry :-(");
     return;
   }
+  gl.clearColor(0.0, 1.0, 0.0, 1.0);
+  gl.disable(gl.DEPTH_TEST);
   vao = gl.createVertexArray(); // webgl2 only
   gl.bindVertexArray(vao);
   var vs = gl.createShader(gl.VERTEX_SHADER);
@@ -73,6 +77,11 @@ function initGL(canvas) {
       // something went wrong with the link
       throw ("program filed to link:" + gl.getProgramInfoLog (program));
   }
+  var world_texture_loc = gl.getUniformLocation(program, 'world_texture');
+  gl.useProgram(program);
+  gl.uniform1i(world_texture_loc, 0);
+  world_texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, world_texture);
 }
 
 function drawScene() {
@@ -80,13 +89,24 @@ function drawScene() {
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.bindVertexArray(vao);
   gl.useProgram(program);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, world_texture);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
 
 function globeviewStart() {
   var canvas = document.getElementById("globeview_canvas");
   initGL(canvas);
-  gl.clearColor(0.0, 1.0, 0.0, 1.0);
-  gl.disable(gl.DEPTH_TEST);
-  drawScene();
+  var image = new Image();
+  image.src = 'world.topo.bathy.200411.3x5400x2700.jpg';
+  image.onload = function() {
+    gl.texImage2D(gl.TEXTURE_2D,
+      0, // mipLevel
+      gl.RGB, // internalFormat,
+      gl.RGB, // source format,
+      gl.UNSIGNED_BYTE,
+      image);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    drawScene();
+  }
 }
