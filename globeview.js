@@ -1,7 +1,7 @@
 "use strict";
 
 function main() {
-  var canvas = document.getElementById("canvas");
+  var canvas = document.getElementById("globeview_canvas");
   var gl = canvas.getContext("webgl");
   if (!gl) {
     return;
@@ -28,7 +28,8 @@ function main() {
      resize(gl.canvas);
      gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
      gl.clear(gl.COLOR_BUFFER_BIT);
-     requestAnimationFrame(drawScene);
+     // requestAnimationFrame(drawScene);
   }
 
 }
+
