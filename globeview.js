@@ -12,20 +12,29 @@ const vec4 SCREEN_QUAD[4] = vec4[4](
   vec4( 1, -1, 0.5, 1),
   vec4(-1,  1, 0.5, 1),
   vec4( 1,  1, 0.5, 1));
+const vec2 TEX_COORD[4] = vec2[4](
+  vec2(0, 0),
+  vec2(1, 0),
+  vec2(0, 1),
+  vec2(1, 1));
+
+out vec2 tex_coord;
 
 void main() {
   gl_Position = SCREEN_QUAD[gl_VertexID];
+  tex_coord = TEX_COORD[gl_VertexID];
 }
 `;
 
 var fragmentShader = `#version 300 es
 
-#line 24
+#line 32
 precision mediump float;
+in vec2 tex_coord;
 out vec4 outColor;
 
 void main() {
-  outColor = vec4(0, 0, 1, 1);
+  outColor = vec4(tex_coord, 1, 1);
 }
 `;
 
