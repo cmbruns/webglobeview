@@ -1,0 +1,2 @@
+# webglobeview
+Earth viewing widget
