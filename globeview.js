@@ -1,35 +1,25 @@
 "use strict";
 
-function main() {
-  var canvas = document.getElementById("globeview_canvas");
-  var gl = canvas.getContext("webgl");
+var gl = null;
+
+function initGL(canvas) {
+  gl = canvas.getContext("webgl");
   if (!gl) {
+    alert("Could not initialise WebGL, sorry :-(");
     return;
   }
+}
 
-  requestAnimationFrame(drawScene);
+function drawScene() {
+  gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+}
 
-  function resize(canvas) {
-    // Lookup the size the browser is displaying the canvas.
-    var displayWidth  = canvas.clientWidth;
-    var displayHeight = canvas.clientHeight;
-
-    // Check if the canvas is not the same size.
-    if (canvas.width  != displayWidth ||
-        canvas.height != displayHeight) {
-
-      // Make the canvas the same size
-      canvas.width  = displayWidth;
-      canvas.height = displayHeight;
-    }
-  }
-
-  function drawScene() {
-     resize(gl.canvas);
-     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-     gl.clear(gl.COLOR_BUFFER_BIT);
-     // requestAnimationFrame(drawScene);
-  }
-
+function globeviewStart() {
+  var canvas = document.getElementById("globeview_canvas");
+  initGL(canvas);
+  gl.clearColor(0.0, 1.0, 0.0, 1.0);
+  gl.disable(gl.DEPTH_TEST);
+  drawScene();
 }
 
