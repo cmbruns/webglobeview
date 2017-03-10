@@ -164,6 +164,7 @@ function globeviewStart() {
   }
 
   function zoomInOut(event) {
+    event.preventDefault();
     var e = window.event || event;
     var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
     if (delta > 0) {
