@@ -147,6 +147,10 @@ function drawScene() {
   requestAnimationFrame(drawScene);
 }
 
+function projectionChanged() {
+
+}
+
 function globeviewStart() {
   var canvas = document.getElementById("globeview_canvas");
   initGL(canvas);
@@ -177,4 +181,5 @@ function globeviewStart() {
   }
   canvas.addEventListener('mousewheel', scrollZoom, false);
   canvas.addEventListener('DOMMouseScroll', scrollZoom, false);
+
 }
