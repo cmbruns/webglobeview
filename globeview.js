@@ -163,7 +163,7 @@ function globeviewStart() {
     requestAnimationFrame(drawScene);
   }
 
-  function zoomInOut(event) {
+  function scrollZoom(event) {
     event.preventDefault();
     var e = window.event || event;
     var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
@@ -175,7 +175,6 @@ function globeviewStart() {
     }
     return false;
   }
-
-  canvas.addEventListener('mousewheel', zoomInOut, false);
-  canvas.addEventListener('DOMMouseScroll', zoomInOut, false);
+  canvas.addEventListener('mousewheel', scrollZoom, false);
+  canvas.addEventListener('DOMMouseScroll', scrollZoom, false);
 }
