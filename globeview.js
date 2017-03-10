@@ -15,7 +15,7 @@ const vec4 SCREEN_QUAD[4] = vec4[4](
   vec4(-1,  1, 0.5, 1),
   vec4( 1,  1, 0.5, 1));
 // todo: scale
-const vec2 TEX_COORD[4] = vec2[4](
+const vec2 SCREEN_COORD[4] = vec2[4](
   vec2(-1, -1),
   vec2( 1, -1),
   vec2(-1,  1),
@@ -23,11 +23,11 @@ const vec2 TEX_COORD[4] = vec2[4](
 
 uniform float zoom; // half-screens per radian
 
-out vec2 tex_coord;
+out vec2 screen_xy;
 
 void main() {
   gl_Position = SCREEN_QUAD[gl_VertexID];
-  tex_coord = TEX_COORD[gl_VertexID] / zoom;
+  screen_xy = SCREEN_COORD[gl_VertexID] / zoom;
 }
 `;
 
@@ -35,20 +35,13 @@ var fragmentShader = `#version 300 es
 #line 36
 precision mediump float;
 uniform sampler2D world_texture;
-in vec2 tex_coord;
-out vec4 outColor;
+in vec2 screen_xy;
+out vec4 out_color;
 
 vec2 longlatFromXyz(in vec3 xyz) {
   float r = length(xyz.xz);
   return vec2(atan(xyz.x, xyz.z),
               atan(xyz.y, r));
-}
-
-vec3 xyzFromLonglat(in vec2 longlat) {
-  float s = cos(longlat.y);
-  return vec3(s * sin(longlat.x), 
-              sin(longlat.y),
-              s * cos(longlat.x));
 }
 
 // Convert from input equirectangular image, to unit sphere surface xyz
@@ -61,16 +54,20 @@ vec2 texCoordFromXyz(in vec3 xyz) {
   return uv;
 }
 
-void main() {
+vec3 sphereFromOrthographic(in vec2 screenXy) {
   // orthographic
-  float y = tex_coord.y;
-  float x = tex_coord.x;
+  float y = screenXy.y;
+  float x = screenXy.x;
   float z = 1.0 - x*x - y*y;
   if (z < 0.0) discard;
-  z = sqrt(z);
+  z = sqrt(z);  
+  return vec3(x, y, z);
+}
 
-  vec2 uv = texCoordFromXyz(vec3(x, y, z));
-  outColor = 
+void main() {
+  vec3 xyz = sphereFromOrthographic(screen_xy);
+  vec2 uv = texCoordFromXyz(xyz);
+  out_color = 
       // vec4(uv, 1, 1);
       texture(world_texture, uv);
 }
