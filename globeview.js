@@ -4,39 +4,75 @@ var gl = null;
 var vao = null;
 var program = null;
 var world_texture = null;
+var zoom_loc = 0;
+var zoom = 1.0; // half-screens per radian
 
 var vertexShader = `#version 300 es
-#line 10
+#line 12
 const vec4 SCREEN_QUAD[4] = vec4[4](
   vec4(-1, -1, 0.5, 1),
   vec4( 1, -1, 0.5, 1),
   vec4(-1,  1, 0.5, 1),
   vec4( 1,  1, 0.5, 1));
+// todo: scale
 const vec2 TEX_COORD[4] = vec2[4](
-  vec2(0, 1),
-  vec2(1, 1),
-  vec2(0, 0),
-  vec2(1, 0));
+  vec2(-1, -1),
+  vec2( 1, -1),
+  vec2(-1,  1),
+  vec2( 1,  1));
+
+uniform float zoom; // half-screens per radian
 
 out vec2 tex_coord;
 
 void main() {
   gl_Position = SCREEN_QUAD[gl_VertexID];
-  tex_coord = TEX_COORD[gl_VertexID];
+  tex_coord = TEX_COORD[gl_VertexID] / zoom;
 }
 `;
 
 var fragmentShader = `#version 300 es
-#line 31
+#line 36
 precision mediump float;
 uniform sampler2D world_texture;
 in vec2 tex_coord;
 out vec4 outColor;
 
+vec2 longlatFromXyz(in vec3 xyz) {
+  float r = length(xyz.xz);
+  return vec2(atan(xyz.x, xyz.z),
+              atan(xyz.y, r));
+}
+
+vec3 xyzFromLonglat(in vec2 longlat) {
+  float s = cos(longlat.y);
+  return vec3(s * sin(longlat.x), 
+              sin(longlat.y),
+              s * cos(longlat.x));
+}
+
+// Convert from input equirectangular image, to unit sphere surface xyz
+vec2 texCoordFromXyz(in vec3 xyz) {
+  vec2 longlat = longlatFromXyz(xyz);
+  const float PI = 3.14159265359;
+  vec2 uv = vec2(
+    longlat.x / PI * 0.5 + 0.5,
+    -longlat.y / PI + 0.5);
+  return uv;
+}
+
 void main() {
+  // orthographic
+  float y = tex_coord.y;
+  float x = tex_coord.x;
+  float z = 1.0 - x*x - y*y;
+  if (z < 0.0) discard;
+  z = sqrt(z);
+
+  vec2 uv = texCoordFromXyz(vec3(x, y, z));
   outColor = 
-      // vec4(tex_coord, 1, 1);
-      texture(world_texture, tex_coord);
+      // vec4(uv, 1, 1);
+      texture(world_texture, uv);
 }
 `;
 
@@ -93,8 +129,10 @@ function initGL(canvas) {
       throw ("program filed to link:" + gl.getProgramInfoLog (program));
   }
   var world_texture_loc = gl.getUniformLocation(program, 'world_texture');
+  zoom_loc = gl.getUniformLocation(program, 'zoom');
   gl.useProgram(program);
   gl.uniform1i(world_texture_loc, 0);
+  gl.uniform1f(zoom_loc, zoom);
   world_texture = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, world_texture);
 }
