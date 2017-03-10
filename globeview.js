@@ -97,7 +97,7 @@ function initGL(canvas) {
     alert("Could not initialise WebGL, sorry :-(");
     return;
   }
-  gl.clearColor(0.0, 1.0, 0.0, 1.0);
+  gl.clearColor(0.2, 0.2, 0.2, 1.0);
   gl.disable(gl.DEPTH_TEST);
   vao = gl.createVertexArray(); // webgl2 only
   gl.bindVertexArray(vao);
@@ -143,6 +143,7 @@ function drawScene() {
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.bindVertexArray(vao);
   gl.useProgram(program);
+  gl.uniform1f(zoom_loc, zoom);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, world_texture);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -164,4 +165,19 @@ function globeviewStart() {
     gl.generateMipmap(gl.TEXTURE_2D);
     requestAnimationFrame(drawScene);
   }
+
+  function zoomInOut(event) {
+    var e = window.event || event;
+    var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
+    if (event.wheelDelta > 0) {
+      zoom *= 1.1;
+    }
+    else {
+      zoom *= 1.0/1.1;
+    }
+    return false;
+  }
+
+  canvas.addEventListener('mousewheel', zoomInOut, false);
+  canvas.addEventListener('DOMMouseScroll', zoomInOut, false);
 }
