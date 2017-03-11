@@ -231,6 +231,7 @@ function globeviewStart() {
     requestAnimationFrame(drawScene);
   }
 
+  // use mouse scroll wheel to zoom in and out
   function scrollZoom(event) {
     event.preventDefault();
     var e = window.event || event;
@@ -246,4 +247,24 @@ function globeviewStart() {
   canvas.addEventListener('mousewheel', scrollZoom, false);
   canvas.addEventListener('DOMMouseScroll', scrollZoom, false);
 
+  // drag mouse to shift center location
+  var dragX = 0;
+  var dragY = 0;
+  canvas.addEventListener('dragstart', function(event) {
+    dragX = event.screenX;
+    dragY = event.screenY;
+    // event.preventDefault();
+  }, false);
+  canvas.addEventListener('drag', function(event) {
+    var dx = event.screenX - dragX;
+    var dy = event.screenY - dragY;
+    if ((dx == 0) && (dy == 0)) return; // no change
+    dragX = event.screenX;
+    dragY = event.screenY;
+    if (Math.abs(dx) > 30) return; // too much
+    if (Math.abs(dy) > 30) return; // too much
+    // console.log('%d, %d', dx, dy)
+    // todo:
+    event.preventDefault();
+  }, false);
 }
