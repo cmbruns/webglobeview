@@ -105,17 +105,17 @@ void main() {
 const EQUIRECTANGULAR = 1;
 const ORTHOGRAPHIC = 2;
 
-var gl = null; // OpenGL context
-var vao = null; // OpenGL vertex array object
-var program = null; // GLSL shader program handle
-var world_texture = null; // Satellite image
+let gl = null; // OpenGL context
+let vao = null; // OpenGL vertex array object
+let program = null; // GLSL shader program handle
+let world_texture = null; // Satellite image
 // GLSL uniform parameters below
-var zoom_loc = -1;
-var zoom = 1.0; // half-screens per radian
-var projection_loc = -1;
-var projection = ORTHOGRAPHIC;
-var rotation_loc = -1;
-var rotation = [1.0, 0.0, 0.0,
+let zoom_loc = -1;
+let zoom = 1.0; // half-screens per radian
+let projection_loc = -1;
+let projection = ORTHOGRAPHIC;
+let rotation_loc = -1;
+let rotation = [1.0, 0.0, 0.0,
                 0.0, 1.0, 0.0,
                 0.0, 0.0, 1.0];
 
@@ -150,7 +150,7 @@ function initGL(canvas) {
   gl.shaderSource(vs, vertexShader);
   gl.compileShader(vs);
   // Check if it compiled
-  var success = gl.getShaderParameter(vs, gl.COMPILE_STATUS);
+  let success = gl.getShaderParameter(vs, gl.COMPILE_STATUS);
   if (!success) {
     // Something went wrong during compilation; get the error
     throw "could not compile shader:" + gl.getShaderInfoLog(vs);
@@ -251,8 +251,8 @@ function globeviewStart() {
   canvas.addEventListener('DOMMouseScroll', scrollZoom, false);
 
   // drag mouse to shift center location
-  var dragX = 0;
-  var dragY = 0;
+  let dragX = 0;
+  let dragY = 0;
   canvas.addEventListener('dragstart', function(event) {
     dragX = event.screenX;
     dragY = event.screenY;
