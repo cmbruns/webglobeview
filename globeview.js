@@ -1,25 +1,14 @@
 "use strict";
 
-var EQUIRECTANGULAR = 1;
-var ORTHOGRAPHIC = 2;
-
-var gl = null;
-var vao = null;
-var program = null;
-var world_texture = null;
-var zoom_loc = 0;
-var zoom = 1.0; // half-screens per radian
-var projection_loc = 0;
-var projection = ORTHOGRAPHIC;
-
 var vertexShader = `#version 300 es
-#line 12
+#line 5
+// Create a static triangle strip covering the entire viewport
 const vec4 SCREEN_QUAD[4] = vec4[4](
   vec4(-1, -1, 0.5, 1),
   vec4( 1, -1, 0.5, 1),
   vec4(-1,  1, 0.5, 1),
   vec4( 1,  1, 0.5, 1));
-// todo: scale
+// interpolate the corner positions
 const vec2 SCREEN_COORD[4] = vec2[4](
   vec2(-1, -1),
   vec2( 1, -1),
@@ -32,16 +21,22 @@ out vec2 screen_xy;
 
 void main() {
   gl_Position = SCREEN_QUAD[gl_VertexID];
+  // scale the corner locations to apply the current zoom level, in half-screens per radian
   screen_xy = SCREEN_COORD[gl_VertexID] / zoom;
 }
 `;
 
 var fragmentShader = `#version 300 es
-#line 36
+#line 31
 precision highp float;
+
+// keep these projection indices in sync with javascript declarations, below...
+const int EQUIRECTANGULAR = 1;
+const int ORTHOGRAPHIC = 2;
 
 uniform sampler2D world_texture;
 uniform int projection;
+uniform mat3 rotation;
 
 in vec2 screen_xy;
 
@@ -49,10 +44,7 @@ out vec4 out_color;
 
 const float PI = 3.14159265359;
 
-// keep these in sync with javascript declarations, above...
-const int EQUIRECTANGULAR = 1;
-const int ORTHOGRAPHIC = 2;
-
+// Convert points on the unit sphere to longituded and latitude angles, in radians
 vec2 longlatFromXyz(in vec3 xyz) {
   float r = length(xyz.xz);
   return vec2(atan(xyz.x, xyz.z),
@@ -68,6 +60,7 @@ vec2 texCoordFromXyz(in vec3 xyz) {
   return uv;
 }
 
+// Deproject equirectangular
 vec3 sphereFromEquirectangular(in vec2 screenXy) {
   float lat = screenXy.y;
   if (abs(lat) > 0.5 * PI) discard;
@@ -79,6 +72,7 @@ vec3 sphereFromEquirectangular(in vec2 screenXy) {
   return vec3(x, y, z);
 }
 
+// Deproject orthographic
 vec3 sphereFromOrthographic(in vec2 screenXy) {
   float y = screenXy.y;
   float x = screenXy.x;
@@ -89,18 +83,40 @@ vec3 sphereFromOrthographic(in vec2 screenXy) {
 }
 
 void main() {
+  // Choose the map projection
   vec3 xyz;
   if (projection == EQUIRECTANGULAR)
     xyz = sphereFromEquirectangular(screen_xy);
   else
     xyz = sphereFromOrthographic(screen_xy);
+
+  // Center on the current geographic location
+  xyz = rotation * xyz;
+
+  // Fetch the color from the world image
   vec2 uv = texCoordFromXyz(xyz);
   out_color = 
-      // vec4(xyz.x, 1, xyz.z, 1);
       texture(world_texture, uv);
 }
 `;
 
+var EQUIRECTANGULAR = 1;
+var ORTHOGRAPHIC = 2;
+
+var gl = null;
+var vao = null;
+var program = null;
+var world_texture = null;
+var zoom_loc = -1;
+var zoom = 1.0; // half-screens per radian
+var projection_loc = -1;
+var projection = ORTHOGRAPHIC;
+var rotation_loc = -1;
+var rotation = [1.0, 0.0, 0.0,
+                0.0, 1.0, 0.0,
+                0.0, 0.0, 1.0];
+
+// verify whether the canvas size matches the current browser window size
 function resize(canvas) {
   // Lookup the size the browser is displaying the canvas.
   var displayWidth  = ~~(0.9 * canvas.clientWidth);
@@ -116,6 +132,7 @@ function resize(canvas) {
   }
 }
 
+// first time setup of opengl state
 function initGL(canvas) {
   gl = canvas.getContext("webgl2");
   if (!gl) {
@@ -157,6 +174,7 @@ function initGL(canvas) {
 
   zoom_loc = gl.getUniformLocation(program, 'zoom');
   projection_loc = gl.getUniformLocation(program, 'projection');
+  rotation_loc = gl.getUniformLocation(program, 'rotation');
 
   gl.useProgram(program);
   gl.uniform1i(world_texture_loc, 0);
@@ -167,6 +185,7 @@ function initGL(canvas) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT);
 }
 
+// draw the earth
 function drawScene() {
   resize(gl.canvas);
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -176,6 +195,7 @@ function drawScene() {
 
   gl.uniform1f(zoom_loc, zoom);
   gl.uniform1i(projection_loc, projection)
+  gl.uniformMatrix3fv(rotation_loc, false, rotation);
 
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, world_texture);
@@ -183,6 +203,7 @@ function drawScene() {
   requestAnimationFrame(drawScene);
 }
 
+// change the current map projection
 function projectionChanged(selectObject) {
   if (selectObject.value == 'equirectangular') {
     projection = EQUIRECTANGULAR;
@@ -192,9 +213,11 @@ function projectionChanged(selectObject) {
   }
 }
 
+// begin drawing the earth for the first time
 function globeviewStart() {
   var canvas = document.getElementById("globeview_canvas");
   initGL(canvas);
+  // Load the satellite picture of the earth
   var image = new Image();
   image.src = 'world.topo.bathy.200411.3x5400x2700.jpg';
   image.onload = function() {
