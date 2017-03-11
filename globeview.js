@@ -1,7 +1,8 @@
 "use strict";
 
-var vertexShader = `#version 300 es
-#line 5
+// Define GLSL shader programs as strings
+const vertexShader = `#version 300 es
+#line 6
 // Create a static triangle strip covering the entire viewport
 const vec4 SCREEN_QUAD[4] = vec4[4](
   vec4(-1, -1, 0.5, 1),
@@ -26,8 +27,8 @@ void main() {
 }
 `;
 
-var fragmentShader = `#version 300 es
-#line 31
+const fragmentShader = `#version 300 es
+#line 32
 precision highp float;
 
 // keep these projection indices in sync with javascript declarations, below...
@@ -100,13 +101,15 @@ void main() {
 }
 `;
 
-var EQUIRECTANGULAR = 1;
-var ORTHOGRAPHIC = 2;
+// assign a unique index to each projection, for communicating between javascript and GLSL
+const EQUIRECTANGULAR = 1;
+const ORTHOGRAPHIC = 2;
 
-var gl = null;
-var vao = null;
-var program = null;
-var world_texture = null;
+var gl = null; // OpenGL context
+var vao = null; // OpenGL vertex array object
+var program = null; // GLSL shader program handle
+var world_texture = null; // Satellite image
+// GLSL uniform parameters below
 var zoom_loc = -1;
 var zoom = 1.0; // half-screens per radian
 var projection_loc = -1;
@@ -119,8 +122,8 @@ var rotation = [1.0, 0.0, 0.0,
 // verify whether the canvas size matches the current browser window size
 function resize(canvas) {
   // Lookup the size the browser is displaying the canvas.
-  var displayWidth  = ~~(0.9 * canvas.clientWidth);
-  var displayHeight = ~~(0.9 * canvas.clientHeight);
+  const displayWidth  = ~~(0.9 * canvas.clientWidth);
+  const displayHeight = ~~(0.9 * canvas.clientHeight);
 
   // Check if the canvas is not the same size.
   if (canvas.width  != displayWidth ||
@@ -143,7 +146,7 @@ function initGL(canvas) {
   gl.disable(gl.DEPTH_TEST);
   vao = gl.createVertexArray(); // webgl2 only
   gl.bindVertexArray(vao);
-  var vs = gl.createShader(gl.VERTEX_SHADER);
+  const vs = gl.createShader(gl.VERTEX_SHADER);
   gl.shaderSource(vs, vertexShader);
   gl.compileShader(vs);
   // Check if it compiled
@@ -152,7 +155,7 @@ function initGL(canvas) {
     // Something went wrong during compilation; get the error
     throw "could not compile shader:" + gl.getShaderInfoLog(vs);
   }
-  var fs = gl.createShader(gl.FRAGMENT_SHADER);
+  const fs = gl.createShader(gl.FRAGMENT_SHADER);
   gl.shaderSource(fs, fragmentShader);
   gl.compileShader(fs);
   // Check if it compiled
@@ -170,7 +173,7 @@ function initGL(canvas) {
       // something went wrong with the link
       throw ("program filed to link:" + gl.getProgramInfoLog (program));
   }
-  var world_texture_loc = gl.getUniformLocation(program, 'world_texture');
+  const world_texture_loc = gl.getUniformLocation(program, 'world_texture');
 
   zoom_loc = gl.getUniformLocation(program, 'zoom');
   projection_loc = gl.getUniformLocation(program, 'projection');
@@ -215,10 +218,10 @@ function projectionChanged(selectObject) {
 
 // begin drawing the earth for the first time
 function globeviewStart() {
-  var canvas = document.getElementById("globeview_canvas");
+  const canvas = document.getElementById("globeview_canvas");
   initGL(canvas);
   // Load the satellite picture of the earth
-  var image = new Image();
+  const image = new Image();
   image.src = 'world.topo.bathy.200411.3x5400x2700.jpg';
   image.onload = function() {
     gl.texImage2D(gl.TEXTURE_2D,
@@ -234,8 +237,8 @@ function globeviewStart() {
   // use mouse scroll wheel to zoom in and out
   function scrollZoom(event) {
     event.preventDefault();
-    var e = window.event || event;
-    var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
+    const e = window.event || event;
+    const delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
     if (delta > 0) {
       zoom *= 1.1;
     }
@@ -256,8 +259,8 @@ function globeviewStart() {
     // event.preventDefault();
   }, false);
   canvas.addEventListener('drag', function(event) {
-    var dx = event.screenX - dragX;
-    var dy = event.screenY - dragY;
+    const dx = event.screenX - dragX;
+    const dy = event.screenY - dragY;
     if ((dx == 0) && (dy == 0)) return; // no change
     dragX = event.screenX;
     dragY = event.screenY;
