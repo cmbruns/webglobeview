@@ -1,11 +1,16 @@
 "use strict";
 
+var EQUIRECTANGULAR = 1;
+var ORTHOGRAPHIC = 2;
+
 var gl = null;
 var vao = null;
 var program = null;
 var world_texture = null;
 var zoom_loc = 0;
 var zoom = 1.0; // half-screens per radian
+var projection_loc = 0;
+var projection = ORTHOGRAPHIC;
 
 var vertexShader = `#version 300 es
 #line 12
@@ -33,10 +38,20 @@ void main() {
 
 var fragmentShader = `#version 300 es
 #line 36
-precision mediump float;
+precision highp float;
+
 uniform sampler2D world_texture;
+uniform int projection;
+
 in vec2 screen_xy;
+
 out vec4 out_color;
+
+const float PI = 3.14159265359;
+
+// keep these in sync with javascript declarations, above...
+const int EQUIRECTANGULAR = 1;
+const int ORTHOGRAPHIC = 2;
 
 vec2 longlatFromXyz(in vec3 xyz) {
   float r = length(xyz.xz);
@@ -47,15 +62,24 @@ vec2 longlatFromXyz(in vec3 xyz) {
 // Convert from input equirectangular image, to unit sphere surface xyz
 vec2 texCoordFromXyz(in vec3 xyz) {
   vec2 longlat = longlatFromXyz(xyz);
-  const float PI = 3.14159265359;
   vec2 uv = vec2(
-    longlat.x / PI * 0.5 + 0.5,
-    -longlat.y / PI + 0.5);
+    0.5 + 0.5 * longlat.x / PI,
+    0.5 + -longlat.y / PI);
   return uv;
 }
 
+vec3 sphereFromEquirectangular(in vec2 screenXy) {
+  float lat = screenXy.y;
+  if (abs(lat) > 0.5 * PI) discard;
+  float y = sin(lat);
+  float lon = screenXy.x;
+  float s = cos(lat);
+  float x = s * sin(lon);
+  float z = s * cos(lon); 
+  return vec3(x, y, z);
+}
+
 vec3 sphereFromOrthographic(in vec2 screenXy) {
-  // orthographic
   float y = screenXy.y;
   float x = screenXy.x;
   float z = 1.0 - x*x - y*y;
@@ -65,10 +89,14 @@ vec3 sphereFromOrthographic(in vec2 screenXy) {
 }
 
 void main() {
-  vec3 xyz = sphereFromOrthographic(screen_xy);
+  vec3 xyz;
+  if (projection == EQUIRECTANGULAR)
+    xyz = sphereFromEquirectangular(screen_xy);
+  else
+    xyz = sphereFromOrthographic(screen_xy);
   vec2 uv = texCoordFromXyz(xyz);
   out_color = 
-      // vec4(uv, 1, 1);
+      // vec4(xyz.x, 1, xyz.z, 1);
       texture(world_texture, uv);
 }
 `;
@@ -126,12 +154,17 @@ function initGL(canvas) {
       throw ("program filed to link:" + gl.getProgramInfoLog (program));
   }
   var world_texture_loc = gl.getUniformLocation(program, 'world_texture');
+
   zoom_loc = gl.getUniformLocation(program, 'zoom');
+  projection_loc = gl.getUniformLocation(program, 'projection');
+
   gl.useProgram(program);
   gl.uniform1i(world_texture_loc, 0);
   gl.uniform1f(zoom_loc, zoom);
   world_texture = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, world_texture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT);
 }
 
 function drawScene() {
@@ -140,15 +173,23 @@ function drawScene() {
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.bindVertexArray(vao);
   gl.useProgram(program);
+
   gl.uniform1f(zoom_loc, zoom);
+  gl.uniform1i(projection_loc, projection)
+
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, world_texture);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   requestAnimationFrame(drawScene);
 }
 
-function projectionChanged() {
-
+function projectionChanged(selectObject) {
+  if (selectObject.value == 'equirectangular') {
+    projection = EQUIRECTANGULAR;
+  }
+  else {
+    projection = ORTHOGRAPHIC;
+  }
 }
 
 function globeviewStart() {

@@ -15,9 +15,9 @@
   <body onload="globeviewStart();">
   <h1>Globeview 5: the HTML5 version</h1>
   Map Projection:<br>
-  <select onchange="projectionChanged()">
-    <option value='1'>Orthographic</option>
-    <option value='2'>Equirectangular (Plate Carr&eacute;e)</option>
+  <select onchange="projectionChanged(this)">
+    <option value='equirectangular'>Equirectangular (Plate Carr&eacute;e)</option>
+    <option value='orthographic' selected='selected'>Orthographic</option>
   </select>
   <br>
   <br>
