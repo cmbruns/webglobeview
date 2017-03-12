@@ -12,10 +12,10 @@
       }
     </style>
   </head>
-  <body onload="globeviewStart();">
-  <h1>Globeview 5: the HTML5 version</h1>
-  Map Projection:<br>
-  <select onchange="projectionChanged(this)">
+  <body onload="globeview.start();">
+  <h1>GlobeView 5: the HTML5 version</h1>
+  Select Map Projection:<br>
+  <select onchange="globeview.projectionChanged(this.value)">
     <option value='equirectangular'>Equirectangular (Plate Carr&eacute;e)</option>
     <option value='orthographic' selected='selected'>Orthographic</option>
   </select>
