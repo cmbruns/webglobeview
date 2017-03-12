@@ -129,6 +129,8 @@ const globeview = window.globeview || {};
   let rotation = [1.0, 0.0, 0.0,
                   0.0, 1.0, 0.0,
                   0.0, 0.0, 1.0];
+  let centerLongitude = 0.0;
+  let centerLatitude = 0.0;
 
   // verify whether the canvas size matches the current browser window size
   function resize(canvas) {
@@ -256,12 +258,7 @@ const globeview = window.globeview || {};
     // drag mouse to shift center location
     let dragX = 0;
     let dragY = 0;
-    canvas.addEventListener('dragstart', function(event) {
-      dragX = event.screenX;
-      dragY = event.screenY;
-      // event.preventDefault();
-    }, false);
-    canvas.addEventListener('drag', function(event) {
+    function mouseDrag(event) {
       const dx = event.screenX - dragX;
       const dy = event.screenY - dragY;
       if ((dx == 0) && (dy == 0)) return; // no change
@@ -269,10 +266,20 @@ const globeview = window.globeview || {};
       dragY = event.screenY;
       if (Math.abs(dx) > 30) return; // too much
       if (Math.abs(dy) > 30) return; // too much
-      // console.log('%d, %d', dx, dy)
+      const dlong = -2.0 * dx / canvas.width / zoom;
+      centerLongitude += dlong;
+      const cy = Math.cos(-centerLongitude);
+      const sy = Math.sin(-centerLongitude);
+      rotation = [
+        cy, 0.0, sy,
+        0.0, 1.0, 0.0,
+        -sy, 0.0, cy];
+      // console.log('center longitude = %d', centerLongitude * 180.0 / Math.PI);
       // todo:
-      event.preventDefault();
-    }, false);
+      event.preventDefault(); // prevents browser scrolling
+      // console.log('mouseDrag');
+    };
+    canvas.addEventListener('drag', mouseDrag, false);
   }
 
   // change the current map projection
