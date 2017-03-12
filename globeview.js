@@ -268,12 +268,33 @@ const globeview = window.globeview || {};
       if (Math.abs(dy) > 30) return; // too much
       const dlong = -2.0 * dx / canvas.width / zoom;
       centerLongitude += dlong;
+      const dLat = 2.0 * dy / canvas.width / zoom;
+      centerLatitude += dLat;
+      centerLatitude = Math.min(centerLatitude, +0.5*Math.PI);
+      centerLatitude = Math.max(centerLatitude, -0.5*Math.PI);
       const cy = Math.cos(-centerLongitude);
       const sy = Math.sin(-centerLongitude);
+      /*
+      const rotY = [
+         cy, 0.0,  sy,
+        0.0, 1.0, 0.0,
+        -sy, 0.0,  cy];
+      rotation = rotY;
+       */
+      const cx = Math.cos(centerLatitude);
+      const sx = Math.sin(centerLatitude);
+      /*
+      const rotX = [
+        1.0, 0.0, 0.0,
+        0.0,  cx, -sx,
+        0.0,  sx,  cx];
+      rotation = rotX;
+       */
+      // minimize arithmetic by manually combining "north-up" style rotation matrix
       rotation = [
         cy, 0.0, sy,
-        0.0, 1.0, 0.0,
-        -sy, 0.0, cy];
+        sx*sy, cx, -sx*cy,
+        -cx*sy, sx, cx*cy];
       // console.log('center longitude = %d', centerLongitude * 180.0 / Math.PI);
       // todo:
       event.preventDefault(); // prevents browser scrolling
