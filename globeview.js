@@ -199,6 +199,16 @@ const globeview = window.globeview || {};
     gl.bindTexture(gl.TEXTURE_2D, world_texture);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT);
+    // Use anisotropic mipmap filtering to avoid poor sampling at the poles.
+    const aniso_ext = (
+      gl.getExtension('EXT_texture_filter_anisotropic') ||
+      gl.getExtension('MOZ_EXT_texture_filter_anisotropic') ||
+      gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic')
+    );
+    if (aniso_ext){
+      const max = gl.getParameter(aniso_ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+      gl.texParameterf(gl.TEXTURE_2D, aniso_ext.TEXTURE_MAX_ANISOTROPY_EXT, max);
+    };
   }
 
   // draw the earth
