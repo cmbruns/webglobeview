@@ -217,14 +217,19 @@ const globeview = window.globeview || {};
     requestAnimationFrame(drawScene);
   }
 
-  // change the current map projection
-  function projectionChanged(selectObject) {
-    if (selectObject.value == 'equirectangular') {
-      projection = EQUIRECTANGULAR;
+  // use mouse scroll wheel to zoom in and out
+  function scrollZoom(event) {
+    event.preventDefault();
+    const e = window.event || event; // firefox
+    const delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
+    const factor = 1.10;
+    if (delta > 0) {
+      zoom *= factor;
     }
     else {
-      projection = ORTHOGRAPHIC;
+      zoom *= 1.0/factor;
     }
+    return false;
   }
 
   // begin drawing the earth for the first time
@@ -245,19 +250,6 @@ const globeview = window.globeview || {};
       requestAnimationFrame(drawScene);
     }
 
-    // use mouse scroll wheel to zoom in and out
-    function scrollZoom(event) {
-      event.preventDefault();
-      const e = window.event || event;
-      const delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
-      if (delta > 0) {
-        zoom *= 1.1;
-      }
-      else {
-        zoom *= 1.0/1.1;
-      }
-      return false;
-    }
     canvas.addEventListener('mousewheel', scrollZoom, false);
     canvas.addEventListener('DOMMouseScroll', scrollZoom, false);
 
