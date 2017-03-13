@@ -12,7 +12,7 @@ const globeview = window.globeview || {};
 
   // Define GLSL shader programs as strings
   const vertexShader = `#version 300 es
-  #line 12
+  #line 16
   // Create a static triangle strip covering the entire viewport
   const vec4 SCREEN_QUAD[4] = vec4[4](
     vec4(-1, -1, 0.5, 1),
@@ -38,12 +38,13 @@ const globeview = window.globeview || {};
   `;
 
   const fragmentShader = `#version 300 es
-  #line 38
+  #line 42
   precision highp float;
 
   // keep these projection indices in sync with javascript declarations, below...
   const int EQUIRECTANGULAR = 1;
   const int ORTHOGRAPHIC = 2;
+  const int PERSPECTIVE = 3;
 
   uniform sampler2D world_texture;
   uniform int projection;
@@ -93,13 +94,31 @@ const globeview = window.globeview || {};
     return vec3(x, y, z);
   }
 
+  // Deproject perspective
+  vec3 sphereFromPerspective(in vec2 screenXy) {
+    const float viewHeight = 5.0; // radians
+    // quadratic formula result of ray-casting equation, coefficents a, b, c:
+    float a = dot(screenXy, screenXy) + viewHeight * viewHeight;
+    // todo: precompute b, c in vertex shader
+    float b = -2.0 * (viewHeight * viewHeight + viewHeight);
+    float c = viewHeight * viewHeight + 2.0 * viewHeight;
+    // quadratic formula determinant b^2 - 4ac:
+    float determinant = b*b - 4.0*a*c;
+    if (determinant < 0.0) discard;
+    float t = (-b - sqrt(determinant))/(2.0*a);
+    vec3 xyz = vec3(0, 0, viewHeight + 1.0) + t * vec3(screenXy, -viewHeight);
+    return xyz;
+  }
+
   void main() {
     // Choose the map projection
     vec3 xyz;
     if (projection == EQUIRECTANGULAR)
       xyz = sphereFromEquirectangular(screen_xy);
-    else
+    else if (projection == ORTHOGRAPHIC)
       xyz = sphereFromOrthographic(screen_xy);
+    else
+      xyz = sphereFromPerspective(screen_xy);
 
     // Center on the current geographic location
     xyz = rotation * xyz;
@@ -115,6 +134,7 @@ const globeview = window.globeview || {};
   // NOTE: remember to synchronize these with the GLSL versions (above)
   const EQUIRECTANGULAR = 1;
   const ORTHOGRAPHIC = 2;
+  const PERSPECTIVE = 3;
 
   let gl = null; // OpenGL context
   let vao = null; // OpenGL vertex array object
@@ -318,8 +338,11 @@ const globeview = window.globeview || {};
   if (proj == 'equirectangular') {
     projection = EQUIRECTANGULAR;
   }
-  else {
+  else if (proj == 'orthographic') {
     projection = ORTHOGRAPHIC;
+  }
+  else {
+    projection = PERSPECTIVE;
   }
 }
 
