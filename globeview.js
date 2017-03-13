@@ -14,129 +14,129 @@ const globeview = window.globeview || {};
     "use strict";
     // Define GLSL shader programs as strings
     const vertexShader = `#version 300 es
-    #line 18
-    // Create a static triangle strip covering the entire viewport
-    const vec4 SCREEN_QUAD[4] = vec4[4](
-        vec4(-1, -1, 0.5, 1),
-        vec4( 1, -1, 0.5, 1),
-        vec4(-1,  1, 0.5, 1),
-        vec4( 1,  1, 0.5, 1));
-    // interpolate the corner positions
-    const vec2 SCREEN_COORD[4] = vec2[4](
-        vec2(-1, -1),
-        vec2( 1, -1),
-        vec2(-1,  1),
-        vec2( 1,  1));
+        #line 18
+        // Create a static triangle strip covering the entire viewport
+        const vec4 SCREEN_QUAD[4] = vec4[4](
+            vec4(-1, -1, 0.5, 1),
+            vec4( 1, -1, 0.5, 1),
+            vec4(-1,  1, 0.5, 1),
+            vec4( 1,  1, 0.5, 1));
+        // interpolate the corner positions
+        const vec2 SCREEN_COORD[4] = vec2[4](
+            vec2(-1, -1),
+            vec2( 1, -1),
+            vec2(-1,  1),
+            vec2( 1,  1));
 
-    uniform float zoom; // half-screens per radian
+        uniform float zoom; // half-screens per radian
 
-    out vec2 screen_xy; // units of radians at screen center
-    // quadratic formula coefficents for perspective projection ray casting
-    flat out float qa1, qb, qc, vh;
+        out vec2 screen_xy; // units of radians at screen center
+        // quadratic formula coefficents for perspective projection ray casting
+        flat out float qa1, qb, qc, vh;
 
-    void main() {
-        gl_Position = SCREEN_QUAD[gl_VertexID];
-        // scale the corner locations to apply the current zoom level, in half-screens per radian
-        screen_xy = SCREEN_COORD[gl_VertexID] / zoom;
+        void main() {
+            gl_Position = SCREEN_QUAD[gl_VertexID];
+            // scale the corner locations to apply the current zoom level, in half-screens per radian
+            screen_xy = SCREEN_COORD[gl_VertexID] / zoom;
 
-        // Precompute perspective coefficients
-        // todo: expose viewHeight to the user
-        const float viewHeight = 5.0; // radians
-        qa1 = viewHeight * viewHeight; // one part of a coefficient
-        qb = -2.0 * (qa1 + viewHeight);
-        qc = qa1 + 2.0 * viewHeight;
-        vh = viewHeight;
-    }
+            // Precompute perspective coefficients
+            // todo: expose viewHeight to the user
+            const float viewHeight = 5.0; // radians
+            qa1 = viewHeight * viewHeight; // one part of a coefficient
+            qb = -2.0 * (qa1 + viewHeight);
+            qc = qa1 + 2.0 * viewHeight;
+            vh = viewHeight;
+        }
     `;
 
     const fragmentShader = `#version 300 es
-    #line 54
-    precision highp float;
+        #line 54
+        precision highp float;
 
-    // keep these projection indices in sync with javascript declarations, below...
-    const int EQUIRECTANGULAR = 1;
-    const int ORTHOGRAPHIC = 2;
-    const int PERSPECTIVE = 3;
+        // keep these projection indices in sync with javascript declarations, below...
+        const int EQUIRECTANGULAR = 1;
+        const int ORTHOGRAPHIC = 2;
+        const int PERSPECTIVE = 3;
 
-    uniform sampler2D world_texture;
-    uniform int projection;
-    uniform mat3 rotation;
+        uniform sampler2D world_texture;
+        uniform int projection;
+        uniform mat3 rotation;
 
-    in vec2 screen_xy; // units of radians at screen center
-    flat in float qa1, qb, qc, vh;
+        in vec2 screen_xy; // units of radians at screen center
+        flat in float qa1, qb, qc, vh;
 
-    out vec4 out_color;
+        out vec4 out_color;
 
-    const float PI = 3.14159265359;
+        const float PI = 3.14159265359;
 
-    // Convert points on the unit sphere to longituded and latitude angles, in radians
-    vec2 longlatFromXyz(in vec3 xyz) {
-        float r = length(xyz.xz);
-        return vec2(atan(xyz.x, xyz.z),
-                    atan(xyz.y, r));
-    }
+        // Convert points on the unit sphere to longituded and latitude angles, in radians
+        vec2 longlatFromXyz(in vec3 xyz) {
+            float r = length(xyz.xz);
+            return vec2(atan(xyz.x, xyz.z),
+                        atan(xyz.y, r));
+        }
 
-    // Convert from input equirectangular image, to unit sphere surface xyz
-    vec2 texCoordFromXyz(in vec3 xyz) {
-        vec2 longlat = longlatFromXyz(xyz);
-        vec2 uv = vec2(
-            0.5 + 0.5 * longlat.x / PI,
-            0.5 + -longlat.y / PI);
-        return uv;
-    }
+        // Convert from input equirectangular image, to unit sphere surface xyz
+        vec2 texCoordFromXyz(in vec3 xyz) {
+            vec2 longlat = longlatFromXyz(xyz);
+            vec2 uv = vec2(
+                0.5 + 0.5 * longlat.x / PI,
+                0.5 + -longlat.y / PI);
+            return uv;
+        }
 
-    // Deproject equirectangular
-    vec3 sphereFromEquirectangular(in vec2 screenXy) {
-        float lat = screenXy.y;
-        if (abs(lat) > 0.5 * PI) discard;
-        float y = sin(lat);
-        float lon = screenXy.x;
-        float s = cos(lat);
-        float x = s * sin(lon);
-        float z = s * cos(lon);
-        return vec3(x, y, z);
-    }
+        // Deproject equirectangular
+        vec3 sphereFromEquirectangular(in vec2 screenXy) {
+            float lat = screenXy.y;
+            if (abs(lat) > 0.5 * PI) discard;
+            float y = sin(lat);
+            float lon = screenXy.x;
+            float s = cos(lat);
+            float x = s * sin(lon);
+            float z = s * cos(lon);
+            return vec3(x, y, z);
+        }
 
-    // Deproject orthographic
-    vec3 sphereFromOrthographic(in vec2 screenXy) {
-        float y = screenXy.y;
-        float x = screenXy.x;
-        float z = 1.0 - x*x - y*y;
-        if (z < 0.0) discard;
-        z = sqrt(z);
-        return vec3(x, y, z);
-    }
+        // Deproject orthographic
+        vec3 sphereFromOrthographic(in vec2 screenXy) {
+            float y = screenXy.y;
+            float x = screenXy.x;
+            float z = 1.0 - x*x - y*y;
+            if (z < 0.0) discard;
+            z = sqrt(z);
+            return vec3(x, y, z);
+        }
 
-    // Deproject perspective
-    vec3 sphereFromPerspective(in vec2 screenXy) {
-        // quadratic formula result of ray-casting equation, coefficents a, b, c:
-        float qa = dot(screenXy, screenXy) + qa1;
-        // quadratic formula determinant b^2 - 4ac:
-        float determinant = qb*qb - 4.0*qa*qc;
-        if (determinant < 0.0) discard;
-        float t = (-qb - sqrt(determinant))/(2.0*qa);
-        vec3 xyz = vec3(0, 0, vh + 1.0) + t * vec3(screenXy, -vh);
-        return xyz;
-    }
+        // Deproject perspective
+        vec3 sphereFromPerspective(in vec2 screenXy) {
+            // quadratic formula result of ray-casting equation, coefficents a, b, c:
+            float qa = dot(screenXy, screenXy) + qa1;
+            // quadratic formula determinant b^2 - 4ac:
+            float determinant = qb*qb - 4.0*qa*qc;
+            if (determinant < 0.0) discard;
+            float t = (-qb - sqrt(determinant))/(2.0*qa);
+            vec3 xyz = vec3(0, 0, vh + 1.0) + t * vec3(screenXy, -vh);
+            return xyz;
+        }
 
-    void main() {
-        // Choose the map projection
-        vec3 xyz;
-        if (projection == EQUIRECTANGULAR)
-            xyz = sphereFromEquirectangular(screen_xy);
-        else if (projection == ORTHOGRAPHIC)
-            xyz = sphereFromOrthographic(screen_xy);
-        else
-            xyz = sphereFromPerspective(screen_xy);
+        void main() {
+            // Choose the map projection
+            vec3 xyz;
+            if (projection == EQUIRECTANGULAR)
+                xyz = sphereFromEquirectangular(screen_xy);
+            else if (projection == ORTHOGRAPHIC)
+                xyz = sphereFromOrthographic(screen_xy);
+            else
+                xyz = sphereFromPerspective(screen_xy);
 
-        // Center on the current geographic location
-        xyz = rotation * xyz;
+            // Center on the current geographic location
+            xyz = rotation * xyz;
 
-        // Fetch the color from the world image
-        vec2 uv = texCoordFromXyz(xyz);
-        out_color =
-                texture(world_texture, uv);
-    }
+            // Fetch the color from the world image
+            vec2 uv = texCoordFromXyz(xyz);
+            out_color =
+                    texture(world_texture, uv);
+        }
     `;
 
     // assign a unique index to each projection, for communicating between javascript and GLSL.
