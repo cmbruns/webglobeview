@@ -28,17 +28,27 @@ const globeview = window.globeview || {};
 
   uniform float zoom; // half-screens per radian
 
-  out vec2 screen_xy;
+  out vec2 screen_xy; // units of radians at screen center
+  // quadratic formula coefficents for perspective projection ray casting
+  flat out float qa1, qb, qc, vh;
 
   void main() {
     gl_Position = SCREEN_QUAD[gl_VertexID];
     // scale the corner locations to apply the current zoom level, in half-screens per radian
     screen_xy = SCREEN_COORD[gl_VertexID] / zoom;
+
+    // Precompute perspective coefficients
+    // todo: expose viewHeight to the user
+    const float viewHeight = 5.0; // radians
+    qa1 = viewHeight * viewHeight; // one part of a coefficient
+    qb = -2.0 * (qa1 + viewHeight);
+    qc = qa1 + 2.0 * viewHeight;
+    vh = viewHeight;
   }
   `;
 
   const fragmentShader = `#version 300 es
-  #line 42
+  #line 51
   precision highp float;
 
   // keep these projection indices in sync with javascript declarations, below...
@@ -50,7 +60,8 @@ const globeview = window.globeview || {};
   uniform int projection;
   uniform mat3 rotation;
 
-  in vec2 screen_xy;
+  in vec2 screen_xy; // units of radians at screen center
+  flat in float qa1, qb, qc, vh;
 
   out vec4 out_color;
 
@@ -96,17 +107,13 @@ const globeview = window.globeview || {};
 
   // Deproject perspective
   vec3 sphereFromPerspective(in vec2 screenXy) {
-    const float viewHeight = 5.0; // radians
     // quadratic formula result of ray-casting equation, coefficents a, b, c:
-    float a = dot(screenXy, screenXy) + viewHeight * viewHeight;
-    // todo: precompute b, c in vertex shader
-    float b = -2.0 * (viewHeight * viewHeight + viewHeight);
-    float c = viewHeight * viewHeight + 2.0 * viewHeight;
+    float qa = dot(screenXy, screenXy) + qa1;
     // quadratic formula determinant b^2 - 4ac:
-    float determinant = b*b - 4.0*a*c;
+    float determinant = qb*qb - 4.0*qa*qc;
     if (determinant < 0.0) discard;
-    float t = (-b - sqrt(determinant))/(2.0*a);
-    vec3 xyz = vec3(0, 0, viewHeight + 1.0) + t * vec3(screenXy, -viewHeight);
+    float t = (-qb - sqrt(determinant))/(2.0*qa);
+    vec3 xyz = vec3(0, 0, vh + 1.0) + t * vec3(screenXy, -vh);
     return xyz;
   }
 
@@ -225,10 +232,10 @@ const globeview = window.globeview || {};
       gl.getExtension('MOZ_EXT_texture_filter_anisotropic') ||
       gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic')
     );
-    if (aniso_ext){
+    if (aniso_ext) {
       const max = gl.getParameter(aniso_ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
       gl.texParameterf(gl.TEXTURE_2D, aniso_ext.TEXTURE_MAX_ANISOTROPY_EXT, max);
-    };
+    }
   }
 
   // draw the earth
@@ -329,7 +336,7 @@ const globeview = window.globeview || {};
       // todo:
       event.preventDefault(); // prevents browser scrolling
       // console.log('mouseDrag');
-    };
+    }
     canvas.addEventListener('drag', mouseDrag, false);
   }
 
