@@ -131,11 +131,14 @@ const globeview = window.globeview || {};
 
             // Center on the current geographic location
             xyz = rotation * xyz;
-
+            // Manually compute mipmapLevel, to avoid a seam at texture coordinate discontinuity
+            float radians_per_screen_pixel = dFdx(screen_xy.x);
+            float radians_per_image_pixel = PI / float(textureSize(world_texture, 0).y);
+            float lod = log2(radians_per_screen_pixel/radians_per_image_pixel) - 0.0;
             // Fetch the color from the world image
             vec2 uv = texCoordFromXyz(xyz);
             out_color =
-                    texture(world_texture, uv);
+                    textureLod(world_texture, uv, lod);
         }
     `;
 
