@@ -30,11 +30,8 @@ const globeview = window.globeview || {};
 
         uniform float zoom; // half-screens per radian
         uniform float aspect_ratio; // width / height
-        uniform float view_height; // radians
 
         out vec2 screen_xy; // units of radians at screen center
-        // quadratic formula coefficents for perspective projection ray casting
-        flat out float qa1, qb, qc, vh;
 
         void main() {
             gl_Position = SCREEN_QUAD[gl_VertexID];
@@ -43,18 +40,11 @@ const globeview = window.globeview || {};
             if (aspect_ratio < 1.0)
                 aspect = vec2(1.0, 1.0/aspect_ratio);
             screen_xy = aspect * SCREEN_COORD[gl_VertexID] / zoom;
-
-            // Precompute perspective coefficients
-            // todo: expose view_height to the user
-            qa1 = view_height * view_height; // one part of a coefficient
-            qb = -2.0 * (qa1 + view_height);
-            qc = qa1 + 2.0 * view_height;
-            vh = view_height;
         }
     `;
 
     const fragmentShader = `#version 300 es
-        #line 54
+        #line 48
         precision highp float;
 
         // keep these projection indices in sync with javascript declarations, below...
@@ -65,9 +55,9 @@ const globeview = window.globeview || {};
         uniform sampler2D world_texture;
         uniform int projection;
         uniform mat3 rotation;
+        uniform float view_height; // radians
 
         in vec2 screen_xy; // units of radians at screen center
-        flat in float qa1, qb, qc, vh;
 
         out vec4 out_color;
 
@@ -114,12 +104,15 @@ const globeview = window.globeview || {};
         // Deproject perspective
         vec3 sphereFromPerspective(in vec2 screenXy) {
             // quadratic formula result of ray-casting equation, coefficents a, b, c:
-            float qa = dot(screenXy, screenXy) + qa1;
+            float vh2 = view_height * view_height;
+            float qa = dot(screenXy, screenXy) + vh2; // one part of a coefficient
+            float qb = -2.0 * (vh2 + view_height);
+            float qc = vh2 + 2.0 * view_height;
             // quadratic formula determinant b^2 - 4ac:
             float determinant = qb*qb - 4.0*qa*qc;
             if (determinant < 0.0) discard;
             float t = (-qb - sqrt(determinant))/(2.0*qa);
-            vec3 xyz = vec3(0, 0, vh + 1.0) + t * vec3(screenXy, -vh);
+            vec3 xyz = vec3(0, 0, view_height + 1.0) + t * vec3(screenXy, -view_height);
             return xyz;
         }
 
@@ -172,7 +165,7 @@ const globeview = window.globeview || {};
     let aspectRatio = 1.0;
     let aspect_loc = -1;
     const radiusKm = 6371.0; // kilometers
-    let view_height = 30000.0 / radiusKm; // radians
+    let view_height = 10000.0 / radiusKm; // radians
     let view_height_loc = -1;
 
     // verify whether the canvas size matches the current browser window size
@@ -366,10 +359,13 @@ const globeview = window.globeview || {};
     globeview.projectionChanged = function (proj) {
         if (proj === "equirectangular") {
             projection = EQUIRECTANGULAR;
+            document.getElementById("height_input").setAttribute("disabled", "true");
         } else if (proj === "orthographic") {
             projection = ORTHOGRAPHIC;
+            document.getElementById("height_input").setAttribute("disabled", "true");
         } else {
             projection = PERSPECTIVE;
+            document.getElementById("height_input").removeAttribute("disabled");
         }
     };
 }(globeview));
