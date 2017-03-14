@@ -30,6 +30,7 @@ const globeview = window.globeview || {};
 
         uniform float zoom; // half-screens per radian
         uniform float aspect_ratio; // width / height
+        uniform float view_height; // radians
 
         out vec2 screen_xy; // units of radians at screen center
         // quadratic formula coefficents for perspective projection ray casting
@@ -44,12 +45,11 @@ const globeview = window.globeview || {};
             screen_xy = aspect * SCREEN_COORD[gl_VertexID] / zoom;
 
             // Precompute perspective coefficients
-            // todo: expose viewHeight to the user
-            const float viewHeight = 5.0; // radians
-            qa1 = viewHeight * viewHeight; // one part of a coefficient
-            qb = -2.0 * (qa1 + viewHeight);
-            qc = qa1 + 2.0 * viewHeight;
-            vh = viewHeight;
+            // todo: expose view_height to the user
+            qa1 = view_height * view_height; // one part of a coefficient
+            qb = -2.0 * (qa1 + view_height);
+            qc = qa1 + 2.0 * view_height;
+            vh = view_height;
         }
     `;
 
@@ -171,6 +171,9 @@ const globeview = window.globeview || {};
     let centerLatitude = 0.0;
     let aspectRatio = 1.0;
     let aspect_loc = -1;
+    const radiusKm = 6371.0; // kilometers
+    let view_height = 30000.0 / radiusKm; // radians
+    let view_height_loc = -1;
 
     // verify whether the canvas size matches the current browser window size
     function resize(canvas) {
@@ -228,17 +231,20 @@ const globeview = window.globeview || {};
             // something went wrong with the link
             throw ("program filed to link:" + gl.getProgramInfoLog(program));
         }
+
         const world_texture_loc = gl.getUniformLocation(program, "world_texture");
 
         zoom_loc = gl.getUniformLocation(program, "zoom");
         projection_loc = gl.getUniformLocation(program, "projection");
         rotation_loc = gl.getUniformLocation(program, "rotation");
         aspect_loc = gl.getUniformLocation(program, "aspect_ratio");
+        view_height_loc = gl.getUniformLocation(program, "view_height");
 
         gl.useProgram(program);
         gl.uniform1i(world_texture_loc, 0);
         gl.uniform1f(zoom_loc, zoom);
         gl.uniform1f(aspect_loc, aspectRatio);
+        gl.uniform1f(view_height_loc, view_height);
         world_texture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, world_texture);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
@@ -267,6 +273,7 @@ const globeview = window.globeview || {};
         gl.uniform1f(aspect_loc, aspectRatio);
         gl.uniform1i(projection_loc, projection);
         gl.uniformMatrix3fv(rotation_loc, false, rotation);
+        gl.uniform1f(view_height_loc, view_height);
 
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, world_texture);
@@ -347,6 +354,12 @@ const globeview = window.globeview || {};
             // console.log("mouseDrag");
         }
         canvas.addEventListener("drag", mouseDrag, false);
+
+        const heightbox = document.getElementById("height_input");
+        heightbox.addEventListener("input", function () {
+            console.log("altitude changed");
+            view_height = heightbox.value / radiusKm;
+        }, false);
     };
 
     // change the current map projection
