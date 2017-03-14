@@ -182,7 +182,7 @@ const globeview = window.globeview || {};
             canvas.width = displayWidth;
             canvas.height = displayHeight;
             aspect_ratio = displayWidth/displayHeight;
-            console.log("aspect = %f", aspect_ratio);
+            // console.log("aspect = %f", aspect_ratio);
         }
     }
 
@@ -354,7 +354,7 @@ const globeview = window.globeview || {};
 
         const heightbox = document.getElementById("height_input");
         heightbox.addEventListener("input", function () {
-            console.log("altitude changed");
+            // console.log("altitude changed");
             view_height = heightbox.value / radiusKm;
         }, false);
     };
