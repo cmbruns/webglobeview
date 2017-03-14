@@ -347,10 +347,32 @@ const globeview = window.globeview || {};
                 -cx * sy, sx, cx * cy
             ];
             // console.log("center longitude = %d", centerLongitude * 180.0 / Math.PI);
-            event.preventDefault(); // prevents browser scrolling
+            // event.preventDefault(); // prevents browser scrolling
             // console.log("mouseDrag");
         }
-        canvas.addEventListener("drag", mouseDrag, false);
+
+        let is_dragging = false;
+        canvas.addEventListener("mousedown", function (event) {
+            // console.log("mousedown");
+            is_dragging = true;
+            // event.preventDefault();
+        }, false);
+        canvas.addEventListener("mousemove", function (event) {
+            if (! is_dragging) {
+                return;
+            }
+            // console.log("mousemove");
+            event.preventDefault(); // required
+            mouseDrag(event);
+        }, false);
+        canvas.addEventListener("mouseup", function (event) {
+            // console.log("mouseup");
+            is_dragging = false;
+        }, false);
+        canvas.addEventListener("mouseout", function (event) {
+            // console.log("mouseout");
+            is_dragging = false;
+        }, false);
 
         const heightbox = document.getElementById("height_input");
         heightbox.addEventListener("input", function () {
