@@ -29,6 +29,7 @@ const globeview = window.globeview || {};
             vec2( 1,  1));
 
         uniform float zoom; // half-screens per radian
+        uniform float aspect_ratio; // width / height
 
         out vec2 screen_xy; // units of radians at screen center
         // quadratic formula coefficents for perspective projection ray casting
@@ -37,7 +38,10 @@ const globeview = window.globeview || {};
         void main() {
             gl_Position = SCREEN_QUAD[gl_VertexID];
             // scale the corner locations to apply the current zoom level, in half-screens per radian
-            screen_xy = SCREEN_COORD[gl_VertexID] / zoom;
+            vec2 aspect = vec2(aspect_ratio, 1.0);
+            if (aspect_ratio < 1.0)
+                aspect = vec2(1.0, 1.0/aspect_ratio);
+            screen_xy = aspect * SCREEN_COORD[gl_VertexID] / zoom;
 
             // Precompute perspective coefficients
             // todo: expose viewHeight to the user
@@ -165,12 +169,14 @@ const globeview = window.globeview || {};
     ];
     let centerLongitude = 0.0;
     let centerLatitude = 0.0;
+    let aspectRatio = 1.0;
+    let aspect_loc = -1;
 
     // verify whether the canvas size matches the current browser window size
     function resize(canvas) {
         // Lookup the size the browser is displaying the canvas.
-        const displayWidth = Math.floor(0.9 * canvas.clientWidth);
-        const displayHeight = Math.floor(0.9 * canvas.clientHeight);
+        const displayWidth = Math.floor(canvas.clientWidth);
+        const displayHeight = Math.floor(canvas.clientHeight);
 
         // Check if the canvas is not the same size.
         if (canvas.width !== displayWidth ||
@@ -179,6 +185,8 @@ const globeview = window.globeview || {};
             // Make the canvas the same size
             canvas.width = displayWidth;
             canvas.height = displayHeight;
+            aspectRatio = displayWidth/displayHeight;
+            console.log("aspect = %f", aspectRatio);
         }
     }
 
@@ -225,10 +233,12 @@ const globeview = window.globeview || {};
         zoom_loc = gl.getUniformLocation(program, "zoom");
         projection_loc = gl.getUniformLocation(program, "projection");
         rotation_loc = gl.getUniformLocation(program, "rotation");
+        aspect_loc = gl.getUniformLocation(program, "aspect_ratio");
 
         gl.useProgram(program);
         gl.uniform1i(world_texture_loc, 0);
         gl.uniform1f(zoom_loc, zoom);
+        gl.uniform1f(aspect_loc, aspectRatio);
         world_texture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, world_texture);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
@@ -254,6 +264,7 @@ const globeview = window.globeview || {};
         gl.useProgram(program);
 
         gl.uniform1f(zoom_loc, zoom);
+        gl.uniform1f(aspect_loc, aspectRatio);
         gl.uniform1i(projection_loc, projection);
         gl.uniformMatrix3fv(rotation_loc, false, rotation);
 
