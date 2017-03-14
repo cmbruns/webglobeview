@@ -162,7 +162,7 @@ const globeview = window.globeview || {};
     ];
     let centerLongitude = 0.0;
     let centerLatitude = 0.0;
-    let aspectRatio = 1.0;
+    let aspect_ratio = 1.0;
     let aspect_loc = -1;
     const radiusKm = 6371.0; // kilometers
     let view_height = 10000.0 / radiusKm; // radians
@@ -181,8 +181,8 @@ const globeview = window.globeview || {};
             // Make the canvas the same size
             canvas.width = displayWidth;
             canvas.height = displayHeight;
-            aspectRatio = displayWidth/displayHeight;
-            console.log("aspect = %f", aspectRatio);
+            aspect_ratio = displayWidth/displayHeight;
+            console.log("aspect = %f", aspect_ratio);
         }
     }
 
@@ -236,7 +236,7 @@ const globeview = window.globeview || {};
         gl.useProgram(program);
         gl.uniform1i(world_texture_loc, 0);
         gl.uniform1f(zoom_loc, zoom);
-        gl.uniform1f(aspect_loc, aspectRatio);
+        gl.uniform1f(aspect_loc, aspect_ratio);
         gl.uniform1f(view_height_loc, view_height);
         world_texture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, world_texture);
@@ -263,7 +263,7 @@ const globeview = window.globeview || {};
         gl.useProgram(program);
 
         gl.uniform1f(zoom_loc, zoom);
-        gl.uniform1f(aspect_loc, aspectRatio);
+        gl.uniform1f(aspect_loc, aspect_ratio);
         gl.uniform1i(projection_loc, projection);
         gl.uniformMatrix3fv(rotation_loc, false, rotation);
         gl.uniform1f(view_height_loc, view_height);
@@ -326,9 +326,13 @@ const globeview = window.globeview || {};
             if (Math.abs(dy) > 30) {
                 return; // too much
             }
-            const dlong = -2.0 * dx / canvas.width / zoom;
+            let drag_scale = 2.0 / canvas.width / zoom;
+            if (aspect_ratio > 1) {
+                drag_scale = 2.0 / canvas.height / zoom;
+            }
+            const dlong = -dx * drag_scale;
             centerLongitude += dlong;
-            const dLat = 2.0 * dy / canvas.width / zoom;
+            const dLat = dy * drag_scale;
             centerLatitude += dLat;
             centerLatitude = Math.min(centerLatitude, +0.5 * Math.PI);
             centerLatitude = Math.max(centerLatitude, -0.5 * Math.PI);
