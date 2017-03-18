@@ -15,16 +15,16 @@
   </head>
   <body onload="globeview.start();">
   <h1>GlobeView 5: the HTML5 version</h1>
+  <br>
+  <canvas id="globeview_canvas" draggable="true">
+  </canvas>
+  <br>
   Select Map Projection:<br>
   <select onchange="globeview.projectionChanged(this.value)">
     <option value='equirectangular'>Equirectangular (Plate Carr&eacute;e)</option>
     <option value='orthographic' selected='selected'>Orthographic</option>
     <option value='perspective'>Perspective</option>
   </select>
-  <br>
-  <br>
-  <canvas id="globeview_canvas" draggable="true">
-  </canvas>
   <br>
   Altitude:&nbsp;<input id="height_input" disabled="true" type="number" value="10000" min="500" step="500">km
   </body>

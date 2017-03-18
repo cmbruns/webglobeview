@@ -312,14 +312,14 @@ const globeview = window.globeview || {};
         // drag mouse to shift center location
         let dragX = 0;
         let dragY = 0;
-        function mouseDrag(event) {
-            const dx = event.screenX - dragX;
-            const dy = event.screenY - dragY;
+        function pan(x, y) {
+            const dx = x - dragX;
+            const dy = y - dragY;
             if ((dx === 0) && (dy === 0)) {
                 return; // no change
             }
-            dragX = event.screenX;
-            dragY = event.screenY;
+            dragX = x;
+            dragY = y;
             if (Math.abs(dx) > 30) {
                 return; // too much
             }
@@ -351,10 +351,17 @@ const globeview = window.globeview || {};
             // console.log("mouseDrag");
         }
 
+        function mouseDrag(event) {
+            pan(event.screenX, event.screenY);
+        }
+        
+        // *** Drag to pan *** //
         let is_dragging = false;
         canvas.addEventListener("mousedown", function (event) {
             // console.log("mousedown");
             is_dragging = true;
+            dragX = event.screenX;
+            dragY = event.screenY;
             // event.preventDefault();
         }, false);
         canvas.addEventListener("mousemove", function (event) {
@@ -374,11 +381,42 @@ const globeview = window.globeview || {};
             is_dragging = false;
         }, false);
 
+        // Drag to pan on mobile
+        canvas.addEventListener("touchstart", function (event) {
+            touches = event.changedTouches;
+            if (touches.length != 1) {
+                is_dragging = false;
+                return; // ignore, we're just doing "pan" for now
+            }
+            is_dragging = true;
+            dragX = event.screenX;
+            dragY = event.screenY;
+            // event.preventDefault();
+        }, false);
+        canvas.addEventListener("touchmove", function (event) {
+            if (! is_dragging) {
+                return;
+            }
+            touches = event.changedTouches;
+            if (touches.length != 1) {
+                is_dragging = false;
+                return; // ignore, we're just doing "pan" for now
+            }
+            pan(event.screenX, event.screenY);
+            event.preventDefault();
+        }, false);
+        canvas.addEventListener("touchend", function (event) {
+            is_dragging = false;
+        }, false);
+
+        // *** Adjust altitude *** //
         const heightbox = document.getElementById("height_input");
         heightbox.addEventListener("input", function () {
             // console.log("altitude changed");
             view_height = heightbox.value / radiusKm;
         }, false);
+
+
     };
 
     // change the current map projection
