@@ -389,8 +389,8 @@ const globeview = window.globeview || {};
                 return; // ignore, we're just doing "pan" for now
             }
             is_dragging = true;
-            dragX = touches[0].pageX;
-            dragY = touches[0].pageY;
+            dragX = touches[0].screenX;
+            dragY = touches[0].screenY;
             // event.preventDefault();
         }, false);
         canvas.addEventListener("touchmove", function (event) {
@@ -402,12 +402,12 @@ const globeview = window.globeview || {};
                 is_dragging = false;
                 return; // ignore, we're just doing "pan" for now
             }
-            console.log("touchmove (%d, %d)", touches[0].pageX, touches[0].pageY);
-            pan(touches[0].pageX, touches[0].pageY);
+            // console.log("touchmove (%d, %d)", touches[0].screenX, touches[0].screenY);
+            pan(touches[0].screenX, touches[0].screenY);
             event.preventDefault();
         }, false);
         canvas.addEventListener("touchend", function (event) {
-            console.log("touchend");
+            // console.log("touchend");
             is_dragging = false;
         }, false);
 
