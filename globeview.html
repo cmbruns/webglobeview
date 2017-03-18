@@ -4,6 +4,15 @@
     <script src="globeview.js"></script>
     <style>
       /* canvas occupying most of the browser viewport */
+      html {
+        font-size: 100%;
+      }
+      select {
+        font-size: 180%;
+      }
+      input {
+        font-size: 140%;
+      }
       canvas {
         width: 90vw;
         height: 90vh;
@@ -14,18 +23,24 @@
     </style>
   </head>
   <body onload="globeview.start();">
-  <h1>GlobeView 5: the HTML5 version</h1>
+  <h1>GlobeView 5 by Christopher Bruns</h1>
   <br>
   <canvas id="globeview_canvas" draggable="true">
   </canvas>
   <br>
-  Select Map Projection:<br>
+  Map Projection:
   <select onchange="globeview.projectionChanged(this.value)">
-    <option value='equirectangular'>Equirectangular (Plate Carr&eacute;e)</option>
+    <option value='equirectangular'>Equirectangular</option>
     <option value='orthographic' selected='selected'>Orthographic</option>
     <option value='perspective'>Perspective</option>
   </select>
-  <br>
+  <p>
   Altitude:&nbsp;<input id="height_input" disabled="true" type="number" value="10000" min="500" step="500">km
+  (Perspective projection only)
+  </p>
+  <h2>Credits</h2>
+  <p>Blue Marble satellite mosaic courtesy the NASA Earth Observatory</p> 
+  <p>GlobeView Copyright &copy; 2017 Christopher M. Bruns All rights reserved.</p>
+  Source code and project information are available on <a href="https://github.com/cmbruns/webglobeview">Github</a>
   </body>
 </html>
