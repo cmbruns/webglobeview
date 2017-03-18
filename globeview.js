@@ -383,7 +383,7 @@ const globeview = window.globeview || {};
 
         // Drag to pan on mobile
         canvas.addEventListener("touchstart", function (event) {
-            touches = event.changedTouches;
+            const touches = event.changedTouches;
             if (touches.length != 1) {
                 is_dragging = false;
                 return; // ignore, we're just doing "pan" for now
@@ -397,7 +397,7 @@ const globeview = window.globeview || {};
             if (! is_dragging) {
                 return;
             }
-            touches = event.changedTouches;
+            const touches = event.changedTouches;
             if (touches.length != 1) {
                 is_dragging = false;
                 return; // ignore, we're just doing "pan" for now
