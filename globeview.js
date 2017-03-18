@@ -382,29 +382,44 @@ const globeview = window.globeview || {};
         }, false);
 
         // Drag to pan on mobile
+        let pinch_width = 100.0;
+        let is_pinching = false;
         canvas.addEventListener("touchstart", function (event) {
             const touches = event.touches;
-            if (touches.length != 1) {
-                is_dragging = false;
+            is_dragging = false;
+            is_pinching = false;
+            if (touches.length === 1) { // drag
+                is_dragging = true;
+                dragX = touches[0].screenX;
+                dragY = touches[0].screenY;
                 return; // ignore, we're just doing "pan" for now
             }
-            is_dragging = true;
-            dragX = touches[0].screenX;
-            dragY = touches[0].screenY;
-            // event.preventDefault();
+            else if (touches.length === 2) { // pinch
+                is_pinching = true;
+                const dx = touches[0].screenX - touches[1].screenX;
+                const dy = touches[0].screenY - touches[1].screenY;
+                pinch_width = Math.sqrt(dx*dx + dy*dy);
+            }
         }, false);
         canvas.addEventListener("touchmove", function (event) {
-            if (! is_dragging) {
-                return;
-            }
             const touches = event.touches;
-            if (touches.length != 1) {
-                is_dragging = false;
-                return; // ignore, we're just doing "pan" for now
+            if ( (touches.length == 1) && (is_dragging) ) {
+                pan(touches[0].screenX, touches[0].screenY);
+                event.preventDefault();
             }
-            // console.log("touchmove (%d, %d)", touches[0].screenX, touches[0].screenY);
-            pan(touches[0].screenX, touches[0].screenY);
-            event.preventDefault();
+            else if ( (touches.length == 2) && (is_pinching) ) {
+                const dx = touches[0].screenX - touches[1].screenX;
+                const dy = touches[0].screenY - touches[1].screenY;
+                const pw1 = Math.sqrt(dx*dx + dy*dy);
+                if (pinch_width > 0.0) {
+                    zoom *= pw1 / pinch_width;
+                }
+                pinch_width = pw1;
+                event.preventDefault();
+            }
+            else {
+                is_dragging = false;
+            }
         }, false);
         canvas.addEventListener("touchend", function (event) {
             // console.log("touchend");
